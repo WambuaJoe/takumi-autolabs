@@ -23,7 +23,7 @@
 - If form-provider configuration is needed, document setup clearly. Do not claim the form is operational until configured and tested.
 - Test navigation links and CTAs, mobile navigation, form validation and actual submission behavior, desktop/mobile pages, image integrity, metadata, sitemap, and identify remaining configuration requirements.
 
-**Status:** The static Web3Forms integration, form validation, one successful provider-response test, and mobile layout checks are complete. The unique synthetic email was not found in the connected Gmail search, and the updated production deployment is pending, so this outcome remains open.
+**Status:** The static Web3Forms integration, form validation, one successful provider-response test, and mobile layout checks are complete. The exact synthetic email was not found in the connected Gmail search. The updated site is live at the production Vercel alias and the page was verified, but target-inbox receipt is still unconfirmed; this outcome remains open.
 
 ## 4. [x] SEO, content accuracy, and deployment configuration
 - Implement unique page titles and meta descriptions; canonical URL placeholders updateable when the production domain is selected; Open Graph metadata; appropriate heading hierarchy; semantic HTML; descriptive image alt text; internal linking; XML sitemap; robots.txt; and relevant Schema.org structured data.
@@ -45,4 +45,4 @@
 - Show a success message only after Web3Forms confirms successful submission. Display a useful error if submission fails. Do not redesign any other website pages.
 - Test a successful submission and email delivery to the configured inbox; required-field validation; invalid email handling; spam protection; mobile behavior; and error handling. Provide a short report confirming what changed and what was tested.
 
-**Status:** The static client integration, field mapping, botcheck/honeypot, in-flight duplicate-submit lock, truthful response states, documentation, 20 automated tests, mobile visual check, and one successful Web3Forms response test are complete. The exact synthetic test email was not located in the connected Gmail search. The production GitHub/Vercel deployment is pending; keep this outcome open until production and target-inbox receipt are confirmed.
+**Status:** The static client integration, field mapping, botcheck/honeypot, in-flight duplicate-submit lock, truthful response states, documentation, 20 automated tests, mobile visual check, and one successful Web3Forms response test are complete. Production GitHub commit `3ad39f1` is live and the public Contact page now serves the new form; production `/api/contact` returns 404. The exact synthetic test email was not located in the connected Gmail search; keep this outcome open until the target inbox confirms receipt.

@@ -1,11 +1,11 @@
 # Remaining business and production inputs
 
-The static Web3Forms integration is implemented without changing the Contact page layout. The user-provided access key is embedded in the form as required by Web3Forms’ browser-side flow; it is intentionally public. No custom domain, email backend, provider environment variable, or Vercel serverless function is required.
+The static Web3Forms integration is live without changing the Contact page layout. The user-provided access key is embedded in the form as required by Web3Forms’ browser-side flow; it is intentionally public. No custom domain, email backend, provider environment variable, or Vercel serverless function is required.
 
 | Item | Needed | Why it matters | Current state |
 | --- | --- | --- | --- |
 | Web3Forms destination | The access key must deliver to `takumiautolabs@gmail.com` | Web3Forms associates the access key with the inbox that receives submissions. | Provider accepted one test; target inbox receipt not confirmed by Gmail search |
-| Production deployment | Updated source on the connected private GitHub `main` branch | Vercel deploys the static build from the connected repository. | Pending final repository sync |
+| Production deployment | Updated source on the connected private GitHub `main` branch | Vercel deploys the static build from the connected repository. | Live at `https://takumi-autolabs.vercel.app/contact/`; page and script return HTTP 200 |
 | Delivery confirmation | Confirm the synthetic test notice arrives in the target inbox and the visitor address is Reply-To | A successful provider response alone does not prove inbox receipt. | No matching message appeared in the connected Gmail search; check the target account and Spam |
 | Production domain | A final public HTTPS domain, only if desired | Set `SITE_URL` for absolute canonical, Open Graph, and sitemap URLs. The form itself works on the default Vercel domain. | Optional / open |
 | Contact/data notice | Confirm that the current short notice is sufficient or provide Takumi’s approved privacy/data-handling notice | The Contact page now explains that submissions are sent through Web3Forms to deliver the enquiry and advises visitors not to submit sensitive information. | Owner review recommended |
