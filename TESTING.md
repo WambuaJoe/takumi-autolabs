@@ -3,26 +3,28 @@
 | | |
 | --- | --- |
 | Project | Takumi AutoLabs website |
-| Run date | 2026-11-09 |
-| Environment | Managed project Preview, local Node.js runtime, mocked Resend responses |
-| Production delivery | Not tested; Vercel environment values were not changed and no real email was sent |
+| Run date | 2026-11-10 |
+| Environment | Managed Preview, local Node.js static server, mocked client tests, and one synthetic Web3Forms submission |
+| Vercel deployment | Pending sync of the tested update to the connected private GitHub `main` branch |
+| Inbox delivery | Not confirmed; see the exact Gmail-search result below |
 
 ## Contact-form results
 
 | Area | Result | Evidence / scope |
 | --- | --- | --- |
-| Automated tests | Pass — 24/24 | `npm test`; includes contact endpoint validation, malformed/empty inputs, size limit, honeypot, server configuration, sanitization, Resend accept/reject/network behavior, idempotency forwarding, six static routes, and client-side configuration/disclosure checks. |
-| Successful provider response | Pass with mock | A simulated Resend 200 response with an email ID produced the success state. No real Resend request or email delivery is claimed. |
-| Missing configuration | Pass | A synthetic valid POST to the restarted local endpoint returned HTTP 503 and the direct `takumiautolabs@gmail.com` fallback because `CONTACT_EMAIL` and `CONTACT_FROM_EMAIL` are not configured in this Preview. No email was sent. |
-| Provider rejection and failure | Pass with mocks | Simulated Resend rejection, network failure, and an HTTP success response without an accepted email ID all produced failure responses, not success. |
-| Input validation and sanitization | Pass | Required name/email/message/consent, malformed addresses, body size, control characters, HTML escaping, topic allowlist, and invalid recipient/sender settings are covered by tests. |
-| Honeypot | Pass | A filled `website` field is rejected before Resend and never returns a success state. |
-| Duplicate submission | Pass in browser + unit test | Two concurrent synthetic submits produced one fetch call; retrying unchanged fields reused the same key. The endpoint forwards `Idempotency-Key` to Resend. Resend documents duplicate suppression for 24 hours: [Idempotency Keys](https://resend.com/docs/dashboard/emails/idempotency-keys). |
-| Mobile layout | Visual check completed | Contact page captured full-page at 375×812; form controls stack in one column, remain labelled/readable, and the contact fallback remains visible. No redesign was made. |
-| Mobile/form interaction | Pass in sandbox Preview with mocked fetch | Empty submission was blocked by native validation. Loading/disabled state, single in-flight submit, retry-key reuse, server configuration error, and direct-email fallback were observed. The browser fetch was stubbed so no real email could be sent. |
-| Source and build checks | Pass | `node --check` on the contact function, client JavaScript, Preview server, and build script; `npm run build` completed with `SITE_URL` unset. XML sitemap parsed, all six pages built, and no production origin was guessed. |
-| Contact page disclosure | Pass | Removed the claim that delivery was already configured; the form retains its direct email fallback and the same fields/design. |
+| Automated tests | Pass — 20/20 | `npm test`; covers required fields, field mapping, access-key presence without printing its value, subject/Reply-To, botcheck/honeypot, duplicate-submit locking, confirmed success, provider failure, static routes, content, and disclosure. Automated tests never send email. |
+| Web3Forms client acceptance | Pass | One clearly labelled synthetic Preview submission received HTTP success with `success: true`; the browser displayed the success state only after that response. No credential or request payload was printed. |
+| Inbox delivery | Not confirmed | A focused Gmail search for the unique synthetic token and for the exact recipient/subject returned 0 threads in the connected mailbox. The message may be delayed, filtered, or the connected Gmail account may not be the target. No second test email was sent. |
+| Required and invalid email | Pass | Native form validation blocked an empty submission and a malformed email address in the browser; static tests verify required controls and `type=email`. |
+| Bot protection | Pass | Existing `website` honeypot remains, and Web3Forms’ `botcheck` checkbox is included. Unit tests confirm the honeypot blocks sending. |
+| Duplicate submission | Pass in unit test | The client ignores repeat submits while a request is processing and restores controls afterward. This is in-flight protection; Web3Forms does not use the retired Resend idempotency header. |
+| Error handling | Pass in unit test | Mocked HTTP/provider rejection, network rejection, and unexpected responses show the error state with the direct email fallback; they do not show success. |
+| Mobile layout | Visual check completed | The full Contact page was captured at 375×812 after the disclosure update. Form controls remain stacked and readable; no redesign was made. |
+| Preview/runtime | Pass | `/contact/` and `/manus-routes.json` returned HTTP 200. The former `/api/contact` endpoint is absent; POST to that path returns HTTP 405 from the static server. |
+| Source/build checks | Pass | `node --check` on `assets/js/site.js`, `dev-server.js`, and `scripts/build.js`; `npm run build` with `SITE_URL` unset; sitemap and robots output validated; `git diff --check` clean. |
 
-## Production items still required
+## Remaining deployment check
 
-In Vercel, set `RESEND_API_KEY`, `CONTACT_EMAIL` (`takumiautolabs@gmail.com`), and `CONTACT_FROM_EMAIL` (the exact sender address on a domain verified with Resend), then redeploy the latest commit. No sender address has been invented. A real end-to-end delivery test remains necessary after those values are set. See [README.md](README.md) and [PLACEHOLDERS.md](PLACEHOLDERS.md).
+The user-provided Web3Forms access key is a public client-side key and is embedded in the static Contact form. No Resend credential was retrieved or reused; the obsolete Resend environment declarations and function were removed. After the private GitHub `main` update triggers Vercel, verify the production page shows the updated form and have the target inbox owner confirm receipt (including Spam). The Gmail connector search did not find the synthetic test message, so do not claim inbox delivery yet.
+
+The integration follows the [Web3Forms API reference](https://docs.web3forms.com/getting-started/api-reference), [Reply-To guide](https://docs.web3forms.com/getting-started/customizations/custom-reply-to), and [spam-protection guidance](https://docs.web3forms.com/getting-started/customizations/spam-protection/spam-protection).

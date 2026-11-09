@@ -3,7 +3,6 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const contactHandler = require('./api/contact');
 
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 3000);
@@ -19,42 +18,14 @@ const MIME_TYPES = {
   '.xml': 'application/xml; charset=utf-8'
 };
 
-function responseAdapter(res) {
-  return {
-    setHeader: (name, value) => res.setHeader(name, value),
-    status(code) {
-      res.statusCode = code;
-      return this;
-    },
-    json(payload) {
-      res.end(JSON.stringify(payload));
-      return this;
-    },
-    end: (body = '') => res.end(body)
-  };
-}
-
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
-
-  if (url.pathname === '/api/contact') {
-    const chunks = [];
-    let size = 0;
-    for await (const chunk of req) {
-      size += chunk.length;
-      if (size > 12_000) {
-        res.writeHead(413, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ error: 'The message is too large.' }));
-        return;
-      }
-      chunks.push(chunk);
-    }
-    const body = Buffer.concat(chunks).toString('utf8');
-    req.body = body;
-    req.headers['content-length'] = String(size);
-    return contactHandler(req, responseAdapter(res));
+const server = http.createServer((req, res) => {
+  if (!['GET', 'HEAD'].includes(req.method)) {
+    res.writeHead(405, { Allow: 'GET, HEAD', 'Content-Type': 'text/plain; charset=utf-8' });
+    res.end('Method not allowed');
+    return;
   }
 
+  const url = new URL(req.url || '/', 'http://localhost');
   let requestedPath;
   try {
     requestedPath = decodeURIComponent(url.pathname);
@@ -76,8 +47,11 @@ const server = http.createServer(async (req, res) => {
     res.end('Not found');
     return;
   }
+
   let resolvedFile = requestedPath === '/' ? path.join(ROOT, 'index.html') : filePath;
-  if (fs.existsSync(resolvedFile) && fs.statSync(resolvedFile).isDirectory()) resolvedFile = path.join(resolvedFile, 'index.html');
+  if (fs.existsSync(resolvedFile) && fs.statSync(resolvedFile).isDirectory()) {
+    resolvedFile = path.join(resolvedFile, 'index.html');
+  }
 
   if (!fs.existsSync(resolvedFile) || !fs.statSync(resolvedFile).isFile()) {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'X-Content-Type-Options': 'nosniff' });

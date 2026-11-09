@@ -19,11 +19,11 @@
 
 ## 3. [ ] Functionality, accessibility, and real form submission
 - Implement responsive navigation, functional mobile menu, working internal navigation and CTA links, contact form validation, submission success and error states, accessible FAQ interactions where applicable, keyboard navigation and visible focus states, and reduced-motion support.
-- The contact form must genuinely submit data through a backend or suitable form service; do not make a frontend-only form that merely displays a success message. Do not expose API keys, credentials, or secrets in frontend JavaScript.
-- If form provider or backend configuration is needed, choose a suitable Vercel approach and document setup clearly. Do not claim the form is operational until configured and tested.
+- The contact form must genuinely submit data through a suitable form service; do not make a frontend-only form that merely displays a success message. Use Web3Forms with its public client-side access key as documented; do not expose, reuse, or include Resend credentials or unrelated secrets.
+- If form-provider configuration is needed, document setup clearly. Do not claim the form is operational until configured and tested.
 - Test navigation links and CTAs, mobile navigation, form validation and actual submission behavior, desktop/mobile pages, image integrity, metadata, sitemap, and identify remaining configuration requirements.
 
-**Status:** The endpoint, validation, and form states are implemented and mocked tests pass. Empty validation, loading/duplicate prevention, retry idempotency, and the honest missing-configuration response were exercised. This outcome remains open until Takumi configures the Resend values in Vercel and verifies an actual end-to-end delivery.
+**Status:** The static Web3Forms integration, form validation, one successful provider-response test, and mobile layout checks are complete. The unique synthetic email was not found in the connected Gmail search, and the updated production deployment is pending, so this outcome remains open.
 
 ## 4. [x] SEO, content accuracy, and deployment configuration
 - Implement unique page titles and meta descriptions; canonical URL placeholders updateable when the production domain is selected; Open Graph metadata; appropriate heading hierarchy; semantic HTML; descriptive image alt text; internal linking; XML sitemap; robots.txt; and relevant Schema.org structured data.
@@ -32,17 +32,17 @@
 - Any illustrative dashboard must visibly display exactly: “ILLUSTRATIVE OPERATIONS DASHBOARD · SAMPLE DATA”.
 - Website deployment target is Vercel. Document any required production domain and contact-form provider setup; do not imply either is configured if it is not.
 
-**Production note:** `SITE_URL` is configurable and the build was tested with a reserved example-only origin; no production domain or live Vercel deployment is claimed.
+**Production note:** `SITE_URL` is configurable and the build was tested with a reserved example-only origin; the production alias is `https://takumi-autolabs.vercel.app`.
 
-## 5. [ ] Vercel contact-form implementation and delivery setup
-- Retain the existing contact form design and fields.
-- Implement a server-side contact submission endpoint compatible with Vercel and integrate Resend for email delivery.
-- Send enquiry notifications to `takumiautolabs@gmail.com`.
-- Keep all API credentials in server-side environment variables and never expose credentials in frontend JavaScript.
-- Validate and sanitize submitted fields on the server. Implement spam protection, including the existing honeypot field. Prevent duplicate submissions where practical.
-- Provide meaningful loading, success, and failure states. Do not display success unless Resend confirms successful acceptance. Remove the current “Email delivery is not configured yet” warning once integration is properly configured. Remove contradictory explanatory text claiming delivery is configured when it is not. If required environment variables are missing, show an honest configuration error. Keep the direct email fallback available.
-- Document these Vercel environment variables: `RESEND_API_KEY`, `CONTACT_EMAIL`, and `CONTACT_FROM_EMAIL`. Do not invent a verified sender address. Clearly explain that `CONTACT_FROM_EMAIL` must use an address on a domain verified with Resend. Provide instructions for setting these variables in Vercel and redeploying.
-- Test required-field validation, invalid email addresses, empty submissions, honeypot spam detection, successful email-service acceptance, failed email delivery, and mobile form behavior.
-- Provide the updated source files and a concise implementation report.
+## 5. [ ] Replace Resend with Web3Forms for the contact form
+- Objective: make the existing contact form functional without requiring a custom domain, email API backend, or Vercel serverless function.
+- Remove the Resend integration and its associated environment variable dependencies. Do not invent an access key or expose, reuse, or disclose any Resend credentials.
+- Integrate Web3Forms using its official endpoint `https://api.web3forms.com/submit`. Preserve the existing contact form design and all current fields.
+- Map Name, Work email, Business, Area of interest, Enquiry message, and the Consent checkbox correctly.
+- Include the user-provided Web3Forms access key as required by Web3Forms. Set the email subject to identify new Takumi AutoLabs website enquiries. Configure the visitor’s email as the reply-to address.
+- Retain spam protection and add the Web3Forms `botcheck` field. Implement asynchronous submission with clear loading, success, and error states. Prevent duplicate submissions while a request is processing.
+- Configure the destination inbox as `takumiautolabs@gmail.com` through the access key. Keep a direct email fallback. Remove all Resend-related configuration warnings.
+- Show a success message only after Web3Forms confirms successful submission. Display a useful error if submission fails. Do not redesign any other website pages.
+- Test a successful submission and email delivery to the configured inbox; required-field validation; invalid email handling; spam protection; mobile behavior; and error handling. Provide a short report confirming what changed and what was tested.
 
-**Status:** Source implementation, Vercel instructions, and mocked provider tests are complete; 24/24 tests pass and mobile layout/form states were checked. The outcome remains open until the exact environment values are configured in Vercel and a real Resend delivery test succeeds. No verified sender was assumed and no real email was sent.
+**Status:** The static client integration, field mapping, botcheck/honeypot, in-flight duplicate-submit lock, truthful response states, documentation, 20 automated tests, mobile visual check, and one successful Web3Forms response test are complete. The exact synthetic test email was not located in the connected Gmail search. The production GitHub/Vercel deployment is pending; keep this outcome open until production and target-inbox receipt are confirmed.

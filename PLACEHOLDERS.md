@@ -1,16 +1,15 @@
 # Remaining business and production inputs
 
-The contact-form code and deployment instructions are implemented. The Vercel production environment still needs the values below; no sender address or production domain has been invented.
+The static Web3Forms integration is implemented without changing the Contact page layout. The user-provided access key is embedded in the form as required by Web3Forms’ browser-side flow; it is intentionally public. No custom domain, email backend, provider environment variable, or Vercel serverless function is required.
 
-| Item | Needed from Takumi | Why it matters | Current state |
+| Item | Needed | Why it matters | Current state |
 | --- | --- | --- | --- |
-| Production domain | The final public HTTPS domain connected to the Vercel project | Set `SITE_URL` so each public page emits its absolute canonical, Open Graph URL/image, and sitemap URL. | Open |
-| Resend API key | A Resend API key stored in Vercel as `RESEND_API_KEY` | Enables server-side delivery of contact enquiries. Keep it out of source code and client JavaScript. | Open in Vercel |
-| Notification recipient | Set `CONTACT_EMAIL` to `takumiautolabs@gmail.com` in Vercel | Determines the inbox that receives website enquiry notifications. | Open in Vercel |
-| Verified sender | Set `CONTACT_FROM_EMAIL` to the exact sender email address verified with Resend, on a domain you control | Resend must authorize the sender domain. No verified address has been guessed or supplied in this document. | Open |
-| Environment scope | Decide whether email delivery should be enabled in Production only or also Preview/Development | Preview and Development submissions send real email when configured; choose scope intentionally. | Open |
-| Contact/data notice | Confirm whether the current short notice is sufficient or supply Takumi’s approved privacy/data-handling notice | The contact page says details are used to respond and does not make an unsupported delivery claim. | Open |
+| Web3Forms destination | The access key must deliver to `takumiautolabs@gmail.com` | Web3Forms associates the access key with the inbox that receives submissions. | Provider accepted one test; target inbox receipt not confirmed by Gmail search |
+| Production deployment | Updated source on the connected private GitHub `main` branch | Vercel deploys the static build from the connected repository. | Pending final repository sync |
+| Delivery confirmation | Confirm the synthetic test notice arrives in the target inbox and the visitor address is Reply-To | A successful provider response alone does not prove inbox receipt. | No matching message appeared in the connected Gmail search; check the target account and Spam |
+| Production domain | A final public HTTPS domain, only if desired | Set `SITE_URL` for absolute canonical, Open Graph, and sitemap URLs. The form itself works on the default Vercel domain. | Optional / open |
+| Contact/data notice | Confirm that the current short notice is sufficient or provide Takumi’s approved privacy/data-handling notice | The Contact page now explains that submissions are sent through Web3Forms to deliver the enquiry and advises visitors not to submit sensitive information. | Owner review recommended |
 
-In Vercel, open the project’s **Settings → Environment Variables**, add the three email variables with the exact names above, select the required environments, save them, and redeploy the latest commit. The form returns a configuration error and retains the direct email fallback until all three values are set. See [README.md](README.md) for the full deployment steps.
+To change the Web3Forms key, replace the value of the hidden `access_key` input in `contact/index.html` and redeploy. Because Web3Forms requires a browser-side key for this integration, it is visible in page source and network requests by design. Do not place private credentials in the form.
 
-The public business email and discovery booking link are supplied and already implemented. Company history, team biographies, credentials, certifications, client names, testimonials, live deployments, and measured results were not supplied; they are intentionally absent.
+No Resend integration, Resend environment dependency, or Vercel contact-function configuration remains. The public business email and discovery booking link are already implemented. Company history, team biographies, credentials, certifications, client names, testimonials, live deployments, and measured results were not supplied; they are intentionally absent.

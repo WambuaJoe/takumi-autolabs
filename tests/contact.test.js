@@ -2,247 +2,213 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const contactHandler = require('../api/contact');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 
-const TEST_IDEMPOTENCY_KEY = '550e8400-e29b-41d4-a716-446655440000';
-const CONFIG_KEYS = ['RESEND_API_KEY', 'CONTACT_EMAIL', 'CONTACT_FROM_EMAIL'];
+const clientSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'js', 'site.js'), 'utf8');
 
-function makeResponse() {
-  return {
-    statusCode: 200,
-    headers: {},
-    body: '',
-    setHeader(name, value) { this.headers[name.toLowerCase()] = value; },
-    status(code) { this.statusCode = code; return this; },
-    json(payload) { this.body = JSON.stringify(payload); return this; },
-    end(payload = '') { this.body = String(payload); return this; }
-  };
-}
+const validFields = {
+  access_key: 'test-public-access-key',
+  subject: 'New website enquiry — Takumi AutoLabs',
+  name: 'Alex Example',
+  email: 'alex@example.test',
+  business: 'Example Wholesale',
+  area_of_interest: 'Systems Integration',
+  message: 'We want to understand the handoff between online orders and our stock records.',
+  consent: 'yes',
+  website: ''
+};
 
-function validRequest(payload = {}, headerOverrides = {}) {
-  return {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'content-length': '500',
-      'idempotency-key': TEST_IDEMPOTENCY_KEY,
-      ...headerOverrides
+function makeHarness({ fields = validFields, valid = true, fetchImpl = async () => { throw new Error('unexpected fetch'); } } = {}) {
+  const listeners = new Map();
+  const attributes = new Map();
+  const status = { textContent: '', dataset: {} };
+  const submit = { disabled: false, innerHTML: 'Send enquiry <span aria-hidden="true">→</span>', textContent: 'Send enquiry' };
+  const controls = Object.keys(fields).map((name) => ({ name, disabled: false }));
+  let resetCount = 0;
+
+  const form = {
+    addEventListener(type, callback) { listeners.set(type, callback); },
+    querySelector(selector) {
+      if (selector === '[data-form-status]') return status;
+      if (selector === '[type="submit"]') return submit;
+      return null;
     },
-    body: {
-      name: 'Alex Example',
-      email: 'alex@example.invalid',
-      business: 'Example Wholesale',
-      topic: 'Systems Integration',
-      message: 'We want to understand the handoff between online orders and our stock records.',
-      consent: 'yes',
-      ...payload
-    }
+    querySelectorAll() { return controls; },
+    getAttribute(name) { return name === 'action' ? 'https://api.web3forms.com/submit' : null; },
+    setAttribute(name, value) { attributes.set(name, value); },
+    removeAttribute(name) { attributes.delete(name); },
+    reportValidity() { return valid; },
+    checkValidity() { return valid; },
+    reset() { resetCount += 1; }
+  };
+
+  class MockFormData {
+    constructor() { this.values = new Map(Object.entries(fields)); }
+    get(name) { return this.values.has(name) ? this.values.get(name) : null; }
+    set(name, value) { this.values.set(name, String(value)); }
+    delete(name) { this.values.delete(name); }
+    entries() { return this.values.entries(); }
+  }
+
+  const document = {
+    querySelector(selector) { return selector === '[data-contact-form]' ? form : null; },
+    querySelectorAll() { return []; },
+    addEventListener() {}
+  };
+  const window = { addEventListener() {}, matchMedia: () => ({ matches: false }) };
+  const context = {
+    document,
+    window,
+    FormData: MockFormData,
+    fetch: fetchImpl,
+    HTMLAnchorElement: class HTMLAnchorElement {},
+    Error,
+    Date,
+    Math,
+    console
+  };
+
+  vm.runInNewContext(clientSource, context, { filename: 'assets/js/site.js' });
+
+  async function submitForm() {
+    const handler = listeners.get('submit');
+    assert.ok(handler, 'the contact form submit handler is registered');
+    let prevented = false;
+    await handler({ preventDefault() { prevented = true; } });
+    return prevented;
+  }
+
+  return {
+    form,
+    status,
+    submit,
+    controls,
+    attributes,
+    submitForm,
+    get resetCount() { return resetCount; }
   };
 }
 
-async function invoke(req) {
-  const res = makeResponse();
-  await contactHandler(req, res);
-  return { res, json: JSON.parse(res.body || '{}') };
+function jsonResponse({ ok = true, status = 200, payload = { success: true, body: { message: 'Email sent successfully!' } } } = {}) {
+  return { ok, status, json: async () => payload };
 }
 
-function withConfig(run, {
-  key = 'test-resend-key',
-  recipient = 'takumiautolabs@gmail.com',
-  from = 'sender@example.invalid',
-  fetchImpl
-} = {}) {
-  const previous = Object.fromEntries(CONFIG_KEYS.map((name) => [name, process.env[name]]));
-  const values = {
-    RESEND_API_KEY: key,
-    CONTACT_EMAIL: recipient,
-    CONTACT_FROM_EMAIL: from
-  };
-  for (const [name, value] of Object.entries(values)) {
-    if (value === null) delete process.env[name];
-    else process.env[name] = value;
-  }
-  const previousFetch = global.fetch;
-  if (fetchImpl) global.fetch = fetchImpl;
-  return Promise.resolve().then(run).finally(() => {
-    for (const [name, value] of Object.entries(previous)) {
-      if (value === undefined) delete process.env[name];
-      else process.env[name] = value;
-    }
-    global.fetch = previousFetch;
-  });
-}
-
-const acceptedResponse = (id = 'test-only-email-id') => ({
-  ok: true,
-  status: 200,
-  json: async () => ({ id })
+test('native required-field and email validation block submission before Web3Forms is called', async () => {
+  let fetchCalls = 0;
+  const harness = makeHarness({ valid: false, fetchImpl: async () => { fetchCalls += 1; return jsonResponse(); } });
+  const prevented = await harness.submitForm();
+  assert.equal(prevented, true);
+  assert.equal(fetchCalls, 0);
+  assert.equal(harness.status.dataset.state, undefined);
 });
 
-test('rejects non-POST requests and advertises the allowed method', async () => {
-  const { res, json } = await invoke({ method: 'GET', headers: {}, body: {} });
-  assert.equal(res.statusCode, 405);
-  assert.equal(res.headers.allow, 'POST');
-  assert.match(json.error, /contact page/i);
-  assert.equal(json.ok, false);
-});
-
-test('rejects requests that are not JSON', async () => {
-  const { res, json } = await invoke(validRequest({}, { 'content-type': 'text/plain' }));
-  assert.equal(res.statusCode, 415);
-  assert.equal(json.ok, false);
-});
-
-test('rejects empty submissions', async () => {
-  const { res, json } = await invoke(validRequest({ name: '', email: '', message: '', consent: '' }));
-  assert.equal(res.statusCode, 400);
-  assert.equal(json.ok, false);
-});
-
-test('validates each required field before contacting Resend', async () => {
-  const invalidSubmissions = [
-    { name: ' ' },
-    { email: '' },
-    { message: '' },
-    { consent: '' }
-  ];
-  for (const fields of invalidSubmissions) {
-    await withConfig(async () => {
-      const { res, json } = await invoke(validRequest(fields));
-      assert.equal(res.statusCode, 400);
-      assert.match(json.error, /check your name/i);
-      assert.equal(json.ok, false);
-    }, { fetchImpl: async () => { throw new Error('Resend must not be called for invalid fields'); } });
-  }
-});
-
-test('rejects malformed email addresses', async () => {
-  for (const email of ['not-an-email', 'name@', 'name@@example.com', 'name..dot@example.com', 'name@example..com']) {
-    await withConfig(async () => {
-      const { res } = await invoke(validRequest({ email }));
-      assert.equal(res.statusCode, 400, email);
-    }, { fetchImpl: async () => { throw new Error('Resend must not be called for invalid email'); } });
-  }
-});
-
-test('rejects oversized pre-parsed JSON bodies even without content-length', async () => {
-  await withConfig(async () => {
-    const req = validRequest({ message: 'x'.repeat(12_000) });
-    delete req.headers['content-length'];
-    const { res, json } = await invoke(req);
-    assert.equal(res.statusCode, 413);
-    assert.match(json.error, /too large/i);
-  }, { fetchImpl: async () => { throw new Error('Resend must not be called for oversized input'); } });
-});
-
-test('does not send or report success for a filled honeypot', async () => {
-  await withConfig(async () => {
-    const { res, json } = await invoke(validRequest({ website: 'bot-filled-value' }));
-    assert.equal(res.statusCode, 400);
-    assert.equal(json.ok, false);
-    assert.doesNotMatch(json.error, /honeypot/i);
-  }, { fetchImpl: async () => { throw new Error('Honeypot submissions must not reach Resend'); } });
-});
-
-test('returns the direct-email configuration error when any required variable is missing', async () => {
-  for (const key of CONFIG_KEYS) {
-    const options = { key: 'test-resend-key', recipient: 'takumiautolabs@gmail.com', from: 'sender@example.invalid' };
-    if (key === 'RESEND_API_KEY') options.key = null;
-    if (key === 'CONTACT_EMAIL') options.recipient = null;
-    if (key === 'CONTACT_FROM_EMAIL') options.from = null;
-    await withConfig(async () => {
-      const { res, json } = await invoke(validRequest());
-      assert.equal(res.statusCode, 503, key);
-      assert.equal(json.ok, false);
-      assert.match(json.error, /not configured/i);
-      assert.match(json.error, /takumiautolabs@gmail\.com/);
-    }, { ...options, fetchImpl: async () => { throw new Error('Resend must not be called without full configuration'); } });
-  }
-});
-
-test('rejects invalid recipient or sender environment addresses before calling Resend', async () => {
-  for (const options of [{ recipient: 'not-an-email' }, { from: 'not-a-verified-address' }]) {
-    await withConfig(async () => {
-      const { res, json } = await invoke(validRequest());
-      assert.equal(res.statusCode, 503);
-      assert.equal(json.ok, false);
-    }, { ...options, fetchImpl: async () => { throw new Error('Resend must not be called with invalid environment values'); } });
-  }
-});
-
-test('sends a sanitized enquiry to the configured recipient and reports success only after Resend acceptance', async () => {
+test('maps all form fields to Web3Forms and shows success only after confirmed acceptance', async () => {
   let request;
-  await withConfig(async () => {
-    const { res, json } = await invoke(validRequest({
-      name: '<Alex>\r\nBcc: attacker@example.invalid',
-      message: 'Please review the order and stock handoff flow.\u0000\n<script>alert(1)</script>'
-    }));
-    assert.equal(res.statusCode, 200);
-    assert.equal(json.ok, true);
-    assert.match(json.message, /sent successfully/i);
-  }, { fetchImpl: async (url, options) => {
-    request = { url, options, payload: JSON.parse(options.body) };
-    return acceptedResponse();
-  } });
-  assert.equal(request.url, 'https://api.resend.com/emails');
+  let resolveFetch;
+  const pendingResponse = new Promise((resolve) => { resolveFetch = resolve; });
+  const harness = makeHarness({ fetchImpl: async (url, options) => { request = { url, options }; return pendingResponse; } });
+
+  const submission = harness.submitForm();
+  assert.equal(harness.status.dataset.state, 'loading');
+  assert.match(harness.status.textContent, /sending/i);
+  assert.equal(harness.submit.disabled, true);
+  assert.equal(harness.controls.every((control) => control.disabled), true);
+  assert.ok(request, 'the browser sends a request while displaying the loading state');
+  assert.equal(request.url, 'https://api.web3forms.com/submit');
   assert.equal(request.options.method, 'POST');
-  assert.match(request.options.headers.Authorization, /^Bearer test-resend-key$/);
-  assert.equal(request.options.headers['Idempotency-Key'], TEST_IDEMPOTENCY_KEY);
-  assert.equal(request.payload.from, 'sender@example.invalid');
-  assert.deepEqual(request.payload.to, ['takumiautolabs@gmail.com']);
-  assert.equal(request.payload.reply_to, 'alex@example.invalid');
-  assert.match(request.payload.text, /<Alex> Bcc: attacker@example\.invalid/);
-  assert.doesNotMatch(request.payload.text, /\u0000/);
-  assert.match(request.payload.html, /&lt;Alex&gt; Bcc: attacker@example\.invalid/);
-  assert.match(request.payload.html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
-  assert.doesNotMatch(request.payload.html, /<script>/);
+  assert.equal(request.options.headers.Accept, 'application/json');
+  assert.equal(request.options.body.get('access_key'), validFields.access_key);
+  assert.equal(request.options.body.get('subject'), 'New website enquiry — Takumi AutoLabs');
+  assert.equal(request.options.body.get('name'), 'Alex Example');
+  assert.equal(request.options.body.get('email'), 'alex@example.test');
+  assert.equal(request.options.body.get('replyto'), 'alex@example.test');
+  assert.equal(request.options.body.get('business'), 'Example Wholesale');
+  assert.equal(request.options.body.get('area_of_interest'), 'Systems Integration');
+  assert.match(request.options.body.get('message'), /online orders and our stock records/);
+  assert.equal(request.options.body.get('consent'), 'yes');
+  assert.equal(request.options.body.get('website'), null);
+  assert.equal(harness.resetCount, 0);
+
+  resolveFetch(jsonResponse());
+  await submission;
+  assert.equal(harness.status.dataset.state, 'success');
+  assert.match(harness.status.textContent, /sent to Takumi AutoLabs/i);
+  assert.equal(harness.resetCount, 1);
+  assert.equal(harness.submit.disabled, false);
+  assert.equal(harness.controls.every((control) => control.disabled), false);
 });
 
-test('does not report success when Resend provides no accepted email id', async () => {
-  await withConfig(async () => {
-    const { res, json } = await invoke(validRequest());
-    assert.equal(res.statusCode, 502);
-    assert.equal(json.ok, false);
-    assert.match(json.error, /could not confirm/i);
-  }, { fetchImpl: async () => acceptedResponse('') });
+test('does not show success when Web3Forms returns a non-success body with HTTP 200', async () => {
+  const harness = makeHarness({
+    fetchImpl: async () => jsonResponse({ payload: { success: false, message: 'Submission was not accepted.' } })
+  });
+  await harness.submitForm();
+  assert.equal(harness.status.dataset.state, 'error');
+  assert.match(harness.status.textContent, /did not confirm/i);
+  assert.match(harness.status.textContent, /takumiautolabs@gmail\.com/);
+  assert.equal(harness.resetCount, 0);
 });
 
-test('reports Resend rejection and network errors instead of a false success', async () => {
-  const failures = [
-    async () => ({ ok: false, status: 429 }),
-    async () => { throw new Error('network failure'); }
-  ];
-  for (const fetchImpl of failures) {
-    await withConfig(async () => {
-      const { res, json } = await invoke(validRequest());
-      assert.equal(res.statusCode, 502);
-      assert.equal(json.ok, false);
-      assert.match(json.error, /email/i);
-      assert.match(json.error, /takumiautolabs@gmail\.com/);
-    }, { fetchImpl });
-  }
+test('does not show success for an HTTP error even if the response body claims success', async () => {
+  const harness = makeHarness({
+    fetchImpl: async () => jsonResponse({ ok: false, status: 500, payload: { success: true } })
+  });
+  await harness.submitForm();
+  assert.equal(harness.status.dataset.state, 'error');
+  assert.equal(harness.resetCount, 0);
 });
 
-test('passes the same retry key through to Resend for duplicate suppression', async () => {
-  const receivedKeys = [];
-  await withConfig(async () => {
-    const first = await invoke(validRequest());
-    const retry = await invoke(validRequest());
-    assert.equal(first.res.statusCode, 200);
-    assert.equal(retry.res.statusCode, 200);
-  }, { fetchImpl: async (_url, options) => {
-    receivedKeys.push(options.headers['Idempotency-Key']);
-    return acceptedResponse();
-  } });
-  assert.deepEqual(receivedKeys, [TEST_IDEMPOTENCY_KEY, TEST_IDEMPOTENCY_KEY]);
+test('reports network failures with the direct email fallback', async () => {
+  const harness = makeHarness({ fetchImpl: async () => { throw new Error('offline'); } });
+  await harness.submitForm();
+  assert.equal(harness.status.dataset.state, 'error');
+  assert.match(harness.status.textContent, /could not reach/i);
+  assert.match(harness.status.textContent, /takumiautolabs@gmail\.com/);
+  assert.equal(harness.resetCount, 0);
 });
 
-test('rejects missing or malformed idempotency keys', async () => {
-  for (const value of ['', 'short']) {
-    await withConfig(async () => {
-      const { res, json } = await invoke(validRequest({}, { 'idempotency-key': value }));
-      assert.equal(res.statusCode, 400);
-      assert.equal(json.ok, false);
-    }, { fetchImpl: async () => { throw new Error('Resend must not be called without a valid key'); } });
-  }
+test('uses a useful retry message when Web3Forms rate-limits submissions', async () => {
+  const harness = makeHarness({
+    fetchImpl: async () => jsonResponse({ ok: false, status: 429, payload: { success: false, message: 'Too many requests.' } })
+  });
+  await harness.submitForm();
+  assert.equal(harness.status.dataset.state, 'error');
+  assert.match(harness.status.textContent, /try again shortly/i);
+  assert.match(harness.status.textContent, /takumiautolabs@gmail\.com/);
+});
+
+test('rejects the existing filled honeypot before sending data', async () => {
+  let fetchCalls = 0;
+  const harness = makeHarness({ fields: { ...validFields, website: 'filled by a bot' }, fetchImpl: async () => { fetchCalls += 1; return jsonResponse(); } });
+  await harness.submitForm();
+  assert.equal(fetchCalls, 0);
+  assert.equal(harness.status.dataset.state, 'error');
+  assert.match(harness.status.textContent, /takumiautolabs@gmail\.com/);
+});
+
+test('shows an honest direct-email error if the public access-key field is empty', async () => {
+  let fetchCalls = 0;
+  const harness = makeHarness({ fields: { ...validFields, access_key: '' }, fetchImpl: async () => { fetchCalls += 1; return jsonResponse(); } });
+  await harness.submitForm();
+  assert.equal(fetchCalls, 0);
+  assert.equal(harness.status.dataset.state, 'error');
+  assert.match(harness.status.textContent, /temporarily unavailable/i);
+  assert.match(harness.status.textContent, /takumiautolabs@gmail\.com/);
+});
+
+test('locks the form against duplicate in-flight submissions', async () => {
+  let fetchCalls = 0;
+  let resolveFetch;
+  const pendingResponse = new Promise((resolve) => { resolveFetch = resolve; });
+  const harness = makeHarness({ fetchImpl: async () => { fetchCalls += 1; return pendingResponse; } });
+
+  const first = harness.submitForm();
+  await harness.submitForm();
+  assert.equal(fetchCalls, 1);
+  assert.equal(harness.status.dataset.state, 'loading');
+  resolveFetch(jsonResponse());
+  await first;
+  assert.equal(harness.status.dataset.state, 'success');
 });

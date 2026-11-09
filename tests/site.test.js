@@ -72,15 +72,20 @@ test('service descriptions include problem, implementation, intended outcome, an
   }
 });
 
-test('the contact form is wired to the server endpoint with required client fields and accessible status', () => {
+test('the contact form retains its visible fields and submits to Web3Forms', () => {
   const html = read('contact/index.html');
-  assert.match(html, /action="\/api\/contact"/);
+  assert.match(html, /action="https:\/\/api\.web3forms\.com\/submit"/);
+  assert.match(html, /name="access_key" value="[^"]+"/);
+  assert.match(html, /name="subject" value="New website enquiry/);
   assert.match(html, /name="name"[^>]*required/);
   assert.match(html, /name="email"[^>]*type="email"[^>]*required/);
+  assert.match(html, /name="business"/);
+  assert.match(html, /name="area_of_interest"/);
   assert.match(html, /name="message"[^>]*maxlength="5000"[^>]*minlength="20"[^>]*required/);
   assert.match(html, /name="consent"[^>]*required/);
-  assert.match(html, /data-form-status role="status" aria-live="polite"/);
+  assert.match(html, /type="checkbox" name="botcheck"[^>]*style="display:none;"/);
   assert.match(html, /name="website"/);
+  assert.match(html, /data-form-status role="status" aria-live="polite"/);
 });
 
 test('all local navigation, section, and asset links resolve to real targets', () => {
@@ -118,30 +123,37 @@ test('no production domain is hard-coded into page metadata', () => {
   }
 });
 
-
-test('the contact disclosure makes no unsupported email-delivery claim and keeps the direct fallback', () => {
+test('the contact disclosure keeps the direct email fallback and makes no unsupported delivery claim', () => {
   const html = read('contact/index.html');
   assert.doesNotMatch(html, /Your message is delivered .* using a configured server-side email service/i);
-  assert.match(html, /Your details are used to respond to your enquiry/i);
+  assert.match(html, /Submitted details are sent to Web3Forms to deliver your enquiry to Takumi AutoLabs/i);
   assert.match(html, /mailto:takumiautolabs@gmail\.com/);
 });
 
-test('the browser form locks while sending, uses Resend idempotency keys, and contains no server credentials', () => {
+test('the client uses Web3Forms response confirmation and locks duplicate in-flight submissions', () => {
   const client = read('assets/js/site.js');
   assert.match(client, /let isSubmitting = false/);
-  assert.match(client, /retryIdempotencyKey/);
-  assert.match(client, /Idempotency-Key/);
   assert.match(client, /submit\.disabled = true/);
-  assert.match(client, /result\?\.ok !== true/);
-  assert.doesNotMatch(client, /RESEND_API_KEY|CONTACT_FROM_EMAIL|Bearer\s/i);
+  assert.match(client, /new FormData\(form\)/);
+  assert.match(client, /payload\.set\('replyto', visitorEmail\)/);
+  assert.match(client, /result\?\.success !== true/);
+  assert.match(client, /https:\/\/api\.web3forms\.com\/submit/);
+  assert.doesNotMatch(client, /RESEND_|api\.resend\.com|Bearer\s/i);
 });
 
+test('Vercel serves a static build without a contact serverless function or Resend environment configuration', () => {
+  const vercel = JSON.parse(read('vercel.json'));
+  assert.equal(vercel.buildCommand, 'npm run build');
+  assert.equal(vercel.outputDirectory, 'dist');
+  assert.equal(Object.hasOwn(vercel, 'functions'), false);
+  assert.equal(fs.existsSync(path.join(ROOT, 'api', 'contact.js')), false);
+  assert.doesNotMatch(read('dev-server.js'), /api\/contact|RESEND_/);
+});
 
-test('Vercel contact handler requires server-side environment settings and sends to configured recipient', () => {
-  const api = read('api/contact.js');
-  assert.match(api, /process\.env\.RESEND_API_KEY/);
-  assert.match(api, /process\.env\.CONTACT_EMAIL/);
-  assert.match(api, /process\.env\.CONTACT_FROM_EMAIL/);
-  assert.match(api, /Idempotency-Key/);
-  assert.doesNotMatch(api, /const RECIPIENT =/);
+test('the README explains the public Web3Forms key and official integration references', () => {
+  const readme = read('README.md');
+  assert.match(readme, /key is intentionally public and visible/i);
+  assert.match(readme, /api\.web3forms\.com\/submit/);
+  assert.match(readme, /takumiautolabs@gmail\.com/);
+  assert.match(readme, /docs\.web3forms\.com\/getting-started\/api-reference/);
 });

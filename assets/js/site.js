@@ -48,7 +48,6 @@
   const controls = Array.from(form.querySelectorAll('input, select, textarea'));
   const initialDisabledStates = controls.map((control) => control.disabled);
   let isSubmitting = false;
-  let retryIdempotencyKey = null;
 
   const setStatus = (message, state = '') => {
     if (!status) return;
@@ -57,17 +56,8 @@
     else delete status.dataset.state;
   };
 
-  const newIdempotencyKey = () => {
-    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
-      return window.crypto.randomUUID();
-    }
-    return `contact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-  };
-
   const clearEditedError = () => {
-    if (isSubmitting) return;
-    retryIdempotencyKey = null;
-    if (status?.dataset.state === 'error') setStatus('');
+    if (!isSubmitting && status?.dataset.state === 'error') setStatus('');
   };
   form.addEventListener('input', clearEditedError);
   form.addEventListener('change', clearEditedError);
@@ -79,11 +69,26 @@
 
     if (!form.reportValidity() || !form.checkValidity()) return;
 
-    const submitUrl = form.getAttribute('action') || '/api/contact';
-    const payload = Object.fromEntries(new FormData(form).entries());
-    retryIdempotencyKey ||= newIdempotencyKey();
-    isSubmitting = true;
+    const endpoint = form.getAttribute('action') || 'https://api.web3forms.com/submit';
+    const payload = new FormData(form);
+    const accessKey = String(payload.get('access_key') || '').trim();
 
+    if (!accessKey) {
+      setStatus('The enquiry form is temporarily unavailable. Please contact us directly at takumiautolabs@gmail.com.', 'error');
+      return;
+    }
+
+    if (String(payload.get('website') || '').trim()) {
+      setStatus('We could not process this enquiry. Please contact us directly at takumiautolabs@gmail.com.', 'error');
+      return;
+    }
+
+    const visitorEmail = String(payload.get('email') || '').trim();
+    payload.set('replyto', visitorEmail);
+    payload.set('subject', 'New website enquiry — Takumi AutoLabs');
+    payload.delete('website');
+
+    isSubmitting = true;
     if (submit) {
       submit.disabled = true;
       submit.textContent = 'Sending…';
@@ -93,28 +98,25 @@
     setStatus('Sending your enquiry…', 'loading');
 
     try {
-      const response = await fetch(submitUrl, {
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Idempotency-Key': retryIdempotencyKey
-        },
-        body: JSON.stringify(payload),
-        credentials: 'same-origin'
+        headers: { Accept: 'application/json' },
+        body: payload
       });
       const result = await response.json().catch(() => null);
 
-      if (!response.ok || result?.ok !== true) {
-        throw new Error(result?.error || 'Your enquiry could not be sent right now. Please email takumiautolabs@gmail.com directly.');
+      if (!response.ok || result?.success !== true) {
+        const message = response.status === 429
+          ? 'The enquiry service is temporarily rate-limiting requests. Please try again shortly, or email takumiautolabs@gmail.com.'
+          : 'The enquiry service did not confirm your submission. Please try again, or email takumiautolabs@gmail.com directly.';
+        setStatus(message, 'error');
+        return;
       }
 
       form.reset();
-      retryIdempotencyKey = null;
-      setStatus(result.message || 'Your enquiry has been sent successfully. Takumi AutoLabs will follow up by email.', 'success');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'We could not submit your message. Please email takumiautolabs@gmail.com directly.';
-      setStatus(message, 'error');
+      setStatus('Thank you. Your enquiry has been sent to Takumi AutoLabs. We will review your note and follow up by email.', 'success');
+    } catch (_error) {
+      setStatus('We could not reach the enquiry service. Please check your connection and try again, or email takumiautolabs@gmail.com directly.', 'error');
     } finally {
       isSubmitting = false;
       form.removeAttribute('aria-busy');
