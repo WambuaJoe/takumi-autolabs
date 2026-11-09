@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" role="img" aria-labelledby="title">
+  <title id="title">Takumi AutoLabs connected-core mark</title>
+  <g fill="none" stroke="#e4a74b" stroke-width="2">
+    <path d="M7 8h17v15H7zM32 8h17v15H32zM7 33h17v15H7zM32 33h17v15H32z"/>
+    <path d="M24 15.5h8M15.5 23v10m25-10v10M24 40.5h8"/>
+  </g>
+  <circle cx="28" cy="28" r="2.2" fill="#e4a74b"/>
+</svg>
