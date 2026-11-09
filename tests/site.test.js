@@ -117,3 +117,31 @@ test('no production domain is hard-coded into page metadata', () => {
     assert.doesNotMatch(html, /<meta\s+property="og:url"/i);
   }
 });
+
+
+test('the contact disclosure makes no unsupported email-delivery claim and keeps the direct fallback', () => {
+  const html = read('contact/index.html');
+  assert.doesNotMatch(html, /Your message is delivered .* using a configured server-side email service/i);
+  assert.match(html, /Your details are used to respond to your enquiry/i);
+  assert.match(html, /mailto:takumiautolabs@gmail\.com/);
+});
+
+test('the browser form locks while sending, uses Resend idempotency keys, and contains no server credentials', () => {
+  const client = read('assets/js/site.js');
+  assert.match(client, /let isSubmitting = false/);
+  assert.match(client, /retryIdempotencyKey/);
+  assert.match(client, /Idempotency-Key/);
+  assert.match(client, /submit\.disabled = true/);
+  assert.match(client, /result\?\.ok !== true/);
+  assert.doesNotMatch(client, /RESEND_API_KEY|CONTACT_FROM_EMAIL|Bearer\s/i);
+});
+
+
+test('Vercel contact handler requires server-side environment settings and sends to configured recipient', () => {
+  const api = read('api/contact.js');
+  assert.match(api, /process\.env\.RESEND_API_KEY/);
+  assert.match(api, /process\.env\.CONTACT_EMAIL/);
+  assert.match(api, /process\.env\.CONTACT_FROM_EMAIL/);
+  assert.match(api, /Idempotency-Key/);
+  assert.doesNotMatch(api, /const RECIPIENT =/);
+});

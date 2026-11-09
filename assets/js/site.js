@@ -44,7 +44,11 @@
 
   const status = form.querySelector('[data-form-status]');
   const submit = form.querySelector('[type="submit"]');
-  const defaultSubmitLabel = submit ? submit.textContent : '';
+  const defaultSubmitMarkup = submit ? submit.innerHTML : '';
+  const controls = Array.from(form.querySelectorAll('input, select, textarea'));
+  const initialDisabledStates = controls.map((control) => control.disabled);
+  let isSubmitting = false;
+  let retryIdempotencyKey = null;
 
   const setStatus = (message, state = '') => {
     if (!status) return;
@@ -53,49 +57,71 @@
     else delete status.dataset.state;
   };
 
-  form.addEventListener('input', () => {
+  const newIdempotencyKey = () => {
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      return window.crypto.randomUUID();
+    }
+    return `contact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  };
+
+  const clearEditedError = () => {
+    if (isSubmitting) return;
+    retryIdempotencyKey = null;
     if (status?.dataset.state === 'error') setStatus('');
-  });
+  };
+  form.addEventListener('input', clearEditedError);
+  form.addEventListener('change', clearEditedError);
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
+    if (isSubmitting) return;
     setStatus('');
 
-    if (!form.reportValidity()) return;
-    if (!form.checkValidity()) return;
+    if (!form.reportValidity() || !form.checkValidity()) return;
 
     const submitUrl = form.getAttribute('action') || '/api/contact';
-    const formData = new FormData(form);
-    const payload = Object.fromEntries(formData.entries());
+    const payload = Object.fromEntries(new FormData(form).entries());
+    retryIdempotencyKey ||= newIdempotencyKey();
+    isSubmitting = true;
 
     if (submit) {
       submit.disabled = true;
       submit.textContent = 'Sending…';
     }
-    setStatus('Sending your message securely…', 'loading');
+    controls.forEach((control) => { control.disabled = true; });
+    form.setAttribute('aria-busy', 'true');
+    setStatus('Sending your enquiry…', 'loading');
 
     try {
       const response = await fetch(submitUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Idempotency-Key': retryIdempotencyKey
+        },
         body: JSON.stringify(payload),
         credentials: 'same-origin'
       });
-      const result = await response.json().catch(() => ({}));
+      const result = await response.json().catch(() => null);
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Your message could not be sent right now. Please email us instead.');
+      if (!response.ok || result?.ok !== true) {
+        throw new Error(result?.error || 'Your enquiry could not be sent right now. Please email takumiautolabs@gmail.com directly.');
       }
 
       form.reset();
-      setStatus('Thanks for reaching out. Your message has been submitted; Takumi AutoLabs will follow up by email.', 'success');
+      retryIdempotencyKey = null;
+      setStatus(result.message || 'Your enquiry has been sent successfully. Takumi AutoLabs will follow up by email.', 'success');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'We could not submit your message. Please email takumiautolabs@gmail.com.';
+      const message = error instanceof Error ? error.message : 'We could not submit your message. Please email takumiautolabs@gmail.com directly.';
       setStatus(message, 'error');
     } finally {
+      isSubmitting = false;
+      form.removeAttribute('aria-busy');
+      controls.forEach((control, index) => { control.disabled = initialDisabledStates[index]; });
       if (submit) {
         submit.disabled = false;
-        submit.textContent = defaultSubmitLabel;
+        submit.innerHTML = defaultSubmitMarkup;
       }
     }
   });

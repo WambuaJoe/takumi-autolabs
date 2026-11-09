@@ -23,7 +23,7 @@
 - If form provider or backend configuration is needed, choose a suitable Vercel approach and document setup clearly. Do not claim the form is operational until configured and tested.
 - Test navigation links and CTAs, mobile navigation, form validation and actual submission behavior, desktop/mobile pages, image integrity, metadata, sitemap, and identify remaining configuration requirements.
 
-**Status:** The Vercel-compatible server function, form states, server-side validation, and mocked delivery tests are implemented. Preview tests confirm successful client validation and an honest configuration-error state without sending real email. This outcome remains open until Takumi configures the Resend API key and verified sender in Vercel and completes a real end-to-end delivery test.
+**Status:** The endpoint, validation, and form states are implemented and mocked tests pass. Empty validation, loading/duplicate prevention, retry idempotency, and the honest missing-configuration response were exercised. This outcome remains open until Takumi configures the Resend values in Vercel and verifies an actual end-to-end delivery.
 
 ## 4. [x] SEO, content accuracy, and deployment configuration
 - Implement unique page titles and meta descriptions; canonical URL placeholders updateable when the production domain is selected; Open Graph metadata; appropriate heading hierarchy; semantic HTML; descriptive image alt text; internal linking; XML sitemap; robots.txt; and relevant Schema.org structured data.
@@ -32,4 +32,17 @@
 - Any illustrative dashboard must visibly display exactly: “ILLUSTRATIVE OPERATIONS DASHBOARD · SAMPLE DATA”.
 - Website deployment target is Vercel. Document any required production domain and contact-form provider setup; do not imply either is configured if it is not.
 
-**Production note:** `SITE_URL` is configurable and the build was tested with a reserved example-only origin; no production domain, live Vercel deployment, or real email credentials are claimed.
+**Production note:** `SITE_URL` is configurable and the build was tested with a reserved example-only origin; no production domain or live Vercel deployment is claimed.
+
+## 5. [ ] Vercel contact-form implementation and delivery setup
+- Retain the existing contact form design and fields.
+- Implement a server-side contact submission endpoint compatible with Vercel and integrate Resend for email delivery.
+- Send enquiry notifications to `takumiautolabs@gmail.com`.
+- Keep all API credentials in server-side environment variables and never expose credentials in frontend JavaScript.
+- Validate and sanitize submitted fields on the server. Implement spam protection, including the existing honeypot field. Prevent duplicate submissions where practical.
+- Provide meaningful loading, success, and failure states. Do not display success unless Resend confirms successful acceptance. Remove the current “Email delivery is not configured yet” warning once integration is properly configured. Remove contradictory explanatory text claiming delivery is configured when it is not. If required environment variables are missing, show an honest configuration error. Keep the direct email fallback available.
+- Document these Vercel environment variables: `RESEND_API_KEY`, `CONTACT_EMAIL`, and `CONTACT_FROM_EMAIL`. Do not invent a verified sender address. Clearly explain that `CONTACT_FROM_EMAIL` must use an address on a domain verified with Resend. Provide instructions for setting these variables in Vercel and redeploying.
+- Test required-field validation, invalid email addresses, empty submissions, honeypot spam detection, successful email-service acceptance, failed email delivery, and mobile form behavior.
+- Provide the updated source files and a concise implementation report.
+
+**Status:** Source implementation, Vercel instructions, and mocked provider tests are complete; 24/24 tests pass and mobile layout/form states were checked. The outcome remains open until the exact environment values are configured in Vercel and a real Resend delivery test succeeds. No verified sender was assumed and no real email was sent.
