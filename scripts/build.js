@@ -53,6 +53,12 @@ for (const directory of ['assets']) {
 }
 copyFile('manus-routes.json');
 
+// Copy Vercel Analytics module for static site usage
+const analyticsSource = path.join(ROOT, 'node_modules/@vercel/analytics/dist/index.mjs');
+const analyticsDest = path.join(DIST, 'assets/js/analytics.mjs');
+ensureDirectory(analyticsDest);
+fs.copyFileSync(analyticsSource, analyticsDest);
+
 const siteOrigin = getSiteOrigin();
 for (const page of PAGES) {
   const htmlPath = path.join(DIST, page.source);
