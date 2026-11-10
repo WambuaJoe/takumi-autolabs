@@ -45,14 +45,13 @@
 - Show a success message only after Web3Forms confirms successful submission. Display a useful error if submission fails. Do not redesign any other website pages.
 - Test a successful submission and email delivery to the configured inbox; required-field validation; invalid email handling; spam protection; mobile behavior; and error handling. Provide a short report confirming what changed and what was tested.
 
-**Status:** The static client integration, field mapping, botcheck/honeypot, in-flight duplicate-submit lock, truthful response states, documentation, 20 automated tests, mobile visual check, and one successful Web3Forms response test are complete. Production GitHub commit `3ad39f1` is live and the public Contact page now serves the new form; production `/api/contact` returns 404. The exact synthetic test email was not located in the connected Gmail search; keep this outcome open until the target inbox confirms receipt.
+**Status:** The static client integration, field mapping, botcheck/honeypot, in-flight duplicate-submit lock, truthful response states, documentation, 20 automated tests, mobile visual check, and one successful Web3Forms response test are complete. Production GitHub commit `3ad39f1` is live and the public Contact page serves the new form; production `/api/contact` returns 404. The exact synthetic test email was not located in the connected Gmail search; keep this outcome open until the target inbox confirms receipt.
 
-
-## 6. [ ] Add the direct Google Analytics 4 tag
+## 6. [x] Add the direct Google Analytics 4 tag
 - Install one Google tag immediately after the opening `<head>` element in every public page: Home, Services, How We Work, Projects, About, and Contact.
 - Use the user-provided GA4 Measurement ID `G-T8ZB559WEY`, load `https://www.googletagmanager.com/gtag/js?id=G-T8ZB559WEY`, and initialize the data layer and `gtag('config', 'G-T8ZB559WEY')` exactly once per page.
 - The user also supplied `GTM-5M2HBJWS`, which is a separate Google Tag Manager container ID. Do not load it alongside the direct GA4 tag without a separate instruction/configuration, to avoid duplicate tags and events.
 - Do not redesign any page. Add a regression test that checks all six source pages have exactly one matching direct GA4 loader/configuration and no duplicate GTM snippet. Document the analytics setup and the privacy/consent review requirement without inventing legal claims or silently adding a consent banner.
 - Verify the static build and production pages contain one tag each; save the update to the project and connected private GitHub/Vercel source.
 
-**Status:** Implementation and verification pending.
+**Status:** Complete. The full 21-test suite and static build pass. All six production pages return HTTP 200 with exactly one GA4 loader/configuration and no GTM snippet. The update is saved to the canonical project checkpoint and pushed to the private GitHub source linked to Vercel.
