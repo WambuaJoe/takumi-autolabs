@@ -31,6 +31,12 @@ Web3Forms notes that honeypots are less effective than CAPTCHA and recommends CA
 
 For the documented request fields and success response, see the [Web3Forms API reference](https://docs.web3forms.com/getting-started/api-reference), [Reply-To guide](https://docs.web3forms.com/getting-started/customizations/custom-reply-to), and [botcheck guidance](https://docs.web3forms.com/getting-started/customizations/spam-protection/spam-protection).
 
+## Google Analytics
+
+A single direct GA4 Google tag using Measurement ID `G-T8ZB559WEY` is installed immediately after `<head>` on each of the six public pages. It loads `gtag.js` and calls `gtag('config', 'G-T8ZB559WEY')` once per page. The separately supplied `GTM-5M2HBJWS` is a Tag Manager container ID; it is not installed, to avoid loading overlapping tags without a configured GTM plan.
+
+No cookie-consent banner or privacy-policy update was added. Review the site’s analytics disclosure and consent requirements for the regions where the site operates before expanding tracking or advertising use. See Google’s [Measurement ID instructions](https://support.google.com/analytics/answer/12270356?hl=en) and [Google tag setup help](https://support.google.com/analytics/answer/9539598?hl=en).
+
 ## Local development
 
 Requires Node.js 20 or newer; there are no npm dependencies.
