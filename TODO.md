@@ -45,7 +45,7 @@
 - Show a success message only after Web3Forms confirms successful submission. Display a useful error if submission fails. Do not redesign any other website pages.
 - Test a successful submission and email delivery to the configured inbox; required-field validation; invalid email handling; spam protection; mobile behavior; and error handling. Provide a short report confirming what changed and what was tested.
 
-**Status:** The static client integration, field mapping, botcheck/honeypot, in-flight duplicate-submit lock, truthful response states, documentation, 20 automated tests, mobile visual check, and one successful Web3Forms response test are complete. Production GitHub commit `3ad39f1` is live and the public Contact page serves the new form; production `/api/contact` returns 404. The exact synthetic test email was not located in the connected Gmail search; keep this outcome open until the target inbox confirms receipt.
+**Status:** The static client integration, field mapping, botcheck/honeypot, in-flight duplicate-submit lock, truthful response states, documentation, 21 automated tests, mobile visual check, and one successful Web3Forms response test are complete. The current private GitHub `main` branch contains the deployed site, and production `/api/contact` returns 404. The exact synthetic test email was not located in the connected Gmail search; keep this outcome open until the target inbox confirms receipt.
 
 ## 6. [x] Add the direct Google Analytics 4 tag
 - Install one Google tag immediately after the opening `<head>` element in every public page: Home, Services, How We Work, Projects, About, and Contact.
@@ -54,13 +54,13 @@
 - Do not redesign any page. Add a regression test that checks all six source pages have exactly one matching direct GA4 loader/configuration. Document the analytics setup and privacy/consent review requirement without inventing legal claims or silently adding a consent banner.
 - Verify the static build and production pages contain one direct GA4 tag each; save the update to the project and connected private GitHub/Vercel source.
 
-**Status:** The direct GA4-only setup was completed and production-verified before outcome 7. Direct GA4 remains installed exactly once per page.
+**Status:** The direct GA4 implementation remains installed exactly once per page and is runtime-checked alongside the separately installed GTM container.
 
-## 7. [ ] Install the Google Tag Manager container alongside direct GA4
+## 7. [x] Install the Google Tag Manager container alongside direct GA4
 - Keep direct GA4 Measurement ID `G-T8ZB559WEY` installed; the user explicitly selected adding GTM alongside it and accepts possible duplicate tracking.
 - Install the user’s GTM container ID `GTM-5M2HBJWS` once on each of the six public pages: Home, Services, How We Work, Projects, About, and Contact.
 - Use Google’s current one-part web-container snippet high in `<head>`: load `https://www.googletagmanager.com/gtm.js?id=GTM-5M2HBJWS`, then initialize `window.dataLayer` and `gtag('js', new Date())`. Do not use the legacy body `<noscript>` iframe snippet; Google identifies it as the previous version.
 - Do not redesign pages. Update README instructions and the regression test to require exactly one direct GA4 loader/configuration and exactly one current GTM loader per page.
 - Build the static site, verify all six production pages return HTTP 200 with both tags present exactly once, and push the update to the canonical project and connected private GitHub/Vercel source.
 
-**Status:** Implementation and verification pending.
+**Status:** Implementation, production deployment, and runtime script/container verification completed on 2026-11-11. All six production routes returned HTTP 200 and contain exactly one direct GA4 loader/configuration and one GTM loader. A consent-denied headless check confirmed both Google scripts returned HTTP 200, the GA4 configuration was queued, and `window.google_tag_manager['GTM-5M2HBJWS']` initialized. The current one-part snippet follows [Google's web-container installation guidance](https://support.google.com/tagmanager/answer/14847097?hl=en). This verifies script/container loading, not transmission of events to the Analytics property or the contents of the GTM workspace; those were not inspected.
