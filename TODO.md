@@ -50,8 +50,17 @@
 ## 6. [x] Add the direct Google Analytics 4 tag
 - Install one Google tag immediately after the opening `<head>` element in every public page: Home, Services, How We Work, Projects, About, and Contact.
 - Use the user-provided GA4 Measurement ID `G-T8ZB559WEY`, load `https://www.googletagmanager.com/gtag/js?id=G-T8ZB559WEY`, and initialize the data layer and `gtag('config', 'G-T8ZB559WEY')` exactly once per page.
-- The user also supplied `GTM-5M2HBJWS`, which is a separate Google Tag Manager container ID. Do not load it alongside the direct GA4 tag without a separate instruction/configuration, to avoid duplicate tags and events.
-- Do not redesign any page. Add a regression test that checks all six source pages have exactly one matching direct GA4 loader/configuration and no duplicate GTM snippet. Document the analytics setup and the privacy/consent review requirement without inventing legal claims or silently adding a consent banner.
-- Verify the static build and production pages contain one tag each; save the update to the project and connected private GitHub/Vercel source.
+- `GTM-5M2HBJWS` is a separate Google Tag Manager container ID. Its explicitly authorized co-installation alongside direct GA4 is tracked in outcome 7.
+- Do not redesign any page. Add a regression test that checks all six source pages have exactly one matching direct GA4 loader/configuration. Document the analytics setup and privacy/consent review requirement without inventing legal claims or silently adding a consent banner.
+- Verify the static build and production pages contain one direct GA4 tag each; save the update to the project and connected private GitHub/Vercel source.
 
-**Status:** Complete. The full 21-test suite and static build pass. All six production pages return HTTP 200 with exactly one GA4 loader/configuration and no GTM snippet. The update is saved to the canonical project checkpoint and pushed to the private GitHub source linked to Vercel.
+**Status:** The direct GA4-only setup was completed and production-verified before outcome 7. Direct GA4 remains installed exactly once per page.
+
+## 7. [ ] Install the Google Tag Manager container alongside direct GA4
+- Keep direct GA4 Measurement ID `G-T8ZB559WEY` installed; the user explicitly selected adding GTM alongside it and accepts possible duplicate tracking.
+- Install the user’s GTM container ID `GTM-5M2HBJWS` once on each of the six public pages: Home, Services, How We Work, Projects, About, and Contact.
+- Use Google’s current one-part web-container snippet high in `<head>`: load `https://www.googletagmanager.com/gtm.js?id=GTM-5M2HBJWS`, then initialize `window.dataLayer` and `gtag('js', new Date())`. Do not use the legacy body `<noscript>` iframe snippet; Google identifies it as the previous version.
+- Do not redesign pages. Update README instructions and the regression test to require exactly one direct GA4 loader/configuration and exactly one current GTM loader per page.
+- Build the static site, verify all six production pages return HTTP 200 with both tags present exactly once, and push the update to the canonical project and connected private GitHub/Vercel source.
+
+**Status:** Implementation and verification pending.

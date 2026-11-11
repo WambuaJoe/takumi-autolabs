@@ -158,15 +158,24 @@ test('the README explains the public Web3Forms key and official integration refe
   assert.match(readme, /docs\.web3forms\.com\/getting-started\/api-reference/);
 });
 
-test('all six public pages contain exactly one direct GA4 tag and no GTM container snippet', () => {
+test('all six public pages contain one direct GA4 tag and one current GTM container snippet', () => {
   const measurementId = 'G-T8ZB559WEY';
+  const containerId = 'GTM-5M2HBJWS';
   const loader = new RegExp(`<script async src="https://www\\.googletagmanager\\.com/gtag/js\\?id=${measurementId}"><\\/script>`, 'g');
   const config = new RegExp(`gtag\\('config',\\s*'${measurementId}'\\);`, 'g');
+  const gtmLoader = new RegExp(`<script async src="https://www\\.googletagmanager\\.com/gtm\\.js\\?id=${containerId}"><\\/script>`, 'g');
   for (const page of PAGES) {
     const html = read(page.file);
     assert.equal([...html.matchAll(loader)].length, 1, `${page.file} loads one GA4 tag`);
     assert.equal([...html.matchAll(config)].length, 1, `${page.file} configures GA4 once`);
+    assert.equal([...html.matchAll(gtmLoader)].length, 1, `${page.file} loads one GTM container`);
     assert.ok(html.indexOf(`googletagmanager.com/gtag/js?id=${measurementId}`) > html.indexOf('<head>'), `${page.file} places the tag inside head`);
-    assert.doesNotMatch(html, /gtm\.js|GTM-5M2HBJWS/, `${page.file} does not also load GTM`);
+    assert.ok(html.indexOf(`googletagmanager.com/gtm.js?id=${containerId}`) > html.indexOf('<head>'), `${page.file} places GTM inside head`);
+    assert.ok(html.indexOf(`googletagmanager.com/gtm.js?id=${containerId}`) < html.indexOf('</head>'), `${page.file} places GTM before the end of head`);
+    const gtmBlocks = [...html.matchAll(/<!-- Google Tag Manager -->([\s\S]*?)<!-- End Google Tag Manager -->/g)];
+    assert.equal(gtmBlocks.length, 1, `${page.file} has one marked current GTM block`);
+    assert.match(gtmBlocks[0][1], /window\.dataLayer = window\.dataLayer \|\| \[\];/);
+    assert.match(gtmBlocks[0][1], /function gtag\(\)\{dataLayer\.push\(arguments\);\}/);
+    assert.match(gtmBlocks[0][1], /gtag\('js', new Date\(\)\);/);
   }
 });

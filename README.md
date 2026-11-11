@@ -33,7 +33,9 @@ For the documented request fields and success response, see the [Web3Forms API r
 
 ## Google Analytics
 
-A single direct GA4 Google tag using Measurement ID `G-T8ZB559WEY` is installed immediately after `<head>` on each of the six public pages. It loads `gtag.js` and calls `gtag('config', 'G-T8ZB559WEY')` once per page. The separately supplied `GTM-5M2HBJWS` is a Tag Manager container ID; it is not installed, to avoid loading overlapping tags without a configured GTM plan.
+A direct GA4 tag using Measurement ID `G-T8ZB559WEY` remains installed once per page, and the separate GTM container `GTM-5M2HBJWS` is installed once per page alongside it. The user explicitly accepted possible duplicate tracking if that GTM container also sends GA4 events. Code installation does not inspect or change tags configured inside the Tag Manager account.
+
+Google’s current web-container instructions use a one-part snippet placed high in `<head>`. They identify the older body `<noscript>` iframe version as a previous snippet. See Google’s [current GTM installation instructions](https://support.google.com/tagmanager/answer/14847097?hl=en) and [Tag Manager getting-started guide](https://developers.google.com/tag-platform/tag-manager/web).
 
 No cookie-consent banner or privacy-policy update was added. Review the site’s analytics disclosure and consent requirements for the regions where the site operates before expanding tracking or advertising use. See Google’s [Measurement ID instructions](https://support.google.com/analytics/answer/12270356?hl=en) and [Google tag setup help](https://support.google.com/analytics/answer/9539598?hl=en).
 
