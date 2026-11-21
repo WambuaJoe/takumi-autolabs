@@ -168,3 +168,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+// Phase 3: Knot-style flip card interactions
+document.addEventListener('DOMContentLoaded', () => {
+  const flipCards = document.querySelectorAll('[data-flip-card]');
+  flipCards.forEach(card => {
+    card.addEventListener('click', (e) => {
+      // Don't trigger flip if clicking direct links
+      if (e.target.closest('a')) return;
+      card.classList.toggle('flipped');
+    });
+  });
+});
