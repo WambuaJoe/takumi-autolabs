@@ -180,3 +180,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+// Scroll to top button interaction
+document.addEventListener('DOMContentLoaded', () => {
+  // Inject scroll-to-top button if not present
+  if (!document.querySelector('.scroll-top-btn')) {
+    const btn = document.createElement('button');
+    btn.className = 'scroll-top-btn';
+    btn.setAttribute('type', 'button');
+    btn.setAttribute('aria-label', 'Scroll to top');
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 15l-6-6-6 6"/></svg>`;
+    document.body.appendChild(btn);
+
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 320) {
+        btn.classList.add('visible');
+      } else {
+        btn.classList.remove('visible');
+      }
+    });
+
+    btn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+});
