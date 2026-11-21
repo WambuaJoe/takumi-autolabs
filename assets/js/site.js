@@ -128,3 +128,43 @@
     }
   });
 })();
+
+// Phase 2: Knot-inspired interactive demo tab switcher
+document.addEventListener('DOMContentLoaded', () => {
+  const tabs = document.querySelectorAll('.demo-tab-btn');
+  const metricOrders = document.querySelector('.metrics-row .metric:nth-child(1) .metric-value');
+  const metricShipments = document.querySelector('.metrics-row .metric:nth-child(2) .metric-value');
+  const metricAlerts = document.querySelector('.metrics-row .metric:nth-child(3) .metric-value');
+  const statusBadge = document.querySelector('.demo-run-badge');
+
+  if (!tabs.length || !metricOrders) return;
+
+  const presets = {
+    order: { orders: '248', shipments: '96.4%', alerts: '12', status: '● Ready · 1,420 runs' },
+    stock: { orders: '412', shipments: '98.1%', alerts: '3', status: '● Synced · 3,890 runs' },
+    crm:   { orders: '189', shipments: '99.5%', alerts: '0', status: '● Active · 850 runs' }
+  };
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      const key = tab.getAttribute('data-workflow');
+      const data = presets[key];
+      if (data) {
+        if (metricOrders) metricOrders.textContent = data.orders;
+        if (metricShipments) metricShipments.textContent = data.shipments;
+        if (metricAlerts) metricAlerts.textContent = data.alerts;
+        if (statusBadge) {
+          statusBadge.textContent = '⚡ Simulating...';
+          statusBadge.style.backgroundColor = '#fef08a';
+          setTimeout(() => {
+            statusBadge.textContent = data.status;
+            statusBadge.style.backgroundColor = 'var(--mint-light)';
+          }, 350);
+        }
+      }
+    });
+  });
+});
