@@ -927,3 +927,142 @@ textarea.form-control { min-height: 150px; resize: vertical; }
   font-size: 0.58rem;
   font-weight: 750;
 }
+
+/* ==========================================================================
+   PHASE 3: KNOT-STYLE RECIPE FLIP CARDS & WORKFLOW DIAGRAM POLISH
+   ========================================================================== */
+
+/* Flip Cards Container */
+.flip-card-wrap {
+  perspective: 1000px;
+  min-height: 290px;
+}
+
+.flip-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 290px;
+  cursor: pointer;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.flip-card.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 1.35rem;
+  border: var(--border-thick);
+  border-radius: var(--radius);
+  background: #ffffff;
+  box-shadow: var(--shadow-hard);
+  backface-visibility: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.flip-card-front:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+  background: #fbfbf9;
+  border-color: #111614;
+}
+
+.flip-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border: 1.5px solid #111614;
+  border-radius: 9999px;
+  font-family: var(--mono);
+  font-size: 0.58rem;
+  font-weight: 750;
+  width: fit-content;
+}
+
+.flip-toggle-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--muted);
+  margin-top: 0.75rem;
+  cursor: pointer;
+}
+
+.flip-toggle-hint:hover {
+  color: #111614;
+}
+
+.flip-steps-list {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.75rem 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flip-step-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border: 1.5px solid #111614;
+  border-radius: 6px;
+  background: #ffffff;
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  font-weight: 650;
+}
+
+.flip-step-item span.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid #111614;
+  font-size: 0.58rem;
+  background: var(--yellow);
+}
+
+/* Polished Architecture Flow Diagram (Knot-style node connectors) */
+.architecture-flow {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(110px, 1fr));
+  align-items: stretch;
+  gap: 0.75rem;
+  padding: 1.35rem;
+  background-color: #f7f7f5;
+  background-image: radial-gradient(#d3d7cf 1.2px, transparent 1.2px);
+  background-size: 16px 16px;
+}
+
+.architecture-node {
+  border: 2px solid #111614;
+  box-shadow: 2.5px 2.5px 0px #111614;
+  background: #ffffff;
+  border-radius: 8px;
+  transition: transform 0.15s ease-out;
+}
+
+.architecture-node:hover {
+  transform: translate(-1.5px, -1.5px);
+  box-shadow: 4px 4px 0px #111614;
+}
